@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>snowytale</title>
+<link rel="icon" type="image/png" href="frozenheart.png">
+
+<style>
+@font-face {
+  font-family: 'determination';
+  src: url('determination.ttf');
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: 'determination', monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  touch-action: none;
+  cursor: url('cursor.png'), auto; 
+}
+
+/* UI BUTOANE */
+button {
+    font-family: 'determination', monospace;
+    cursor: url('cursor.png'), pointer;
+    background: black;
+    color: white;
+    border: 2px solid white;
+    font-size: 24px;
+    width: 50px; height: 50px;
+    display: flex; justify-content: center; align-items: center;
+}
+button:active { background: white; color: black; }
+
+.game-container {
+    width: 100vw; max-width: 500px;
+    height: 100vh; max-height: 800px;
+    border: 4px solid white;
+    background: black;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* VIEWPORT */
+.viewport {
+    flex: 70;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 4px solid white;
+    background: black;
+}
+
+/* HUD */
+.hud {
+    flex: 30;
+    background: black;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+/* EFECTE (Ninsoare) */
+.snow-overlay {
+    position: absolute; inset: 0; pointer-events: none; z-index: 5;
+    background-image: radial-gradient(white 2px, transparent 2px);
+    background-size: 32px 32px;
+    animation: snow 8s linear infinite;
+    opacity: 0.7;
+}
+@keyframes snow { from {background-position:0 0;} to {background-position:0 200px;} }
+
+/* PLAYER */
+#player { 
+    position: absolute; width: 64px; height: 64px; z-index: 50; 
+    image-rendering: pixelated; display: none;
+    transition: left 0.05s linear, top 0.05s linear;
+}
+
+/* ECRANE */
+.screen { display: none; width: 100%; height: 100%; position: absolute; inset: 0; }
+.screen.active { display: block; }
+
+/* CSS FIX PENTRU KISS SCENE + NINSOARE */
+#final.active {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: black;
+    z-index: 999;
+    position: relative; /* Necesar pentru ninsoare */
+}
+#final img { 
+    max-width: 90%; 
+    max-height: 60%; 
+    border: 4px solid white; 
+    display: block; 
+    z-index: 10; /* Peste ninsoare daca vrei, sau sub */
+    position: relative;
+}
+#final p {
+    z-index: 10;
+    position: relative;
+}
+
+
+/* ROOM 1 */
+#room1 { background: linear-gradient(to bottom, #0f172a, #1e293b); }
+.snow-ground {
+    position: absolute; bottom: 0; width: 100%; height: 40%;
+    background: white; border-top: 4px solid #94a3b8;
+}
+/* Brazi Verzi */
+.tree-container {
+    position: absolute; bottom: 35%;
+    display: flex; flex-direction: column; align-items: center;
+    z-index: 2;
+}
+.t-layer {
+    width: 0; height: 0; border-style: solid;
+    border-color: transparent transparent #0f3d0f transparent;
+}
+.t1 { border-width: 0 25px 40px 25px; z-index: 3; }
+.t2 { border-width: 0 35px 50px 35px; margin-top: -20px; z-index: 2; }
+.t3 { border-width: 0 45px 60px 45px; margin-top: -25px; z-index: 1; }
+.trunk { width: 16px; height: 25px; background: #3d2817; margin-top: -5px; }
+
+/* ROOM 2 */
+#room2 { background: #000; }
+.bridge {
+    position: absolute; top: 55%; left: 0; width: 100%; height: 60px;
+    background: repeating-linear-gradient(90deg, #000, #000 10px, #fff 10px, #fff 12px);
+    border-top: 2px solid white; border-bottom: 2px solid white;
+}
+.star { position: absolute; width: 2px; height: 2px; background: white; opacity: 0.8; }
+#echoFlower {
+    position: absolute; left: 70%; top: 45%; 
+    width: 30px; height: 40px; z-index: 15;
+}
+#echoFlower::before { 
+    content: ''; position: absolute; bottom: 0; left: 13px;
+    width: 4px; height: 20px; background: #888;
+}
+#echoFlower::after { 
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 30px; height: 25px; 
+    background: #fff; border-radius: 50% 50% 0 0;
+    box-shadow: 0 0 15px #fff;
+    animation: glow 2s infinite alternate;
+}
+@keyframes glow { from{filter:brightness(0.8); opacity:0.7;} to{filter:brightness(1.2); opacity:1;} }
+
+/* ROOM 3 */
+#room3 { background: #000; }
+#frozenHeartBtn, #realHeart {
+    position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+    width: 150px; image-rendering: pixelated; z-index: 60;
+}
+#realHeart { display: none; animation: beat 1s infinite; }
+@keyframes beat { 0%,100%{transform:translate(-50%,-50%) scale(1);} 50%{transform:translate(-50%,-50%) scale(1.1);} }
+
+#partner {
+    position: absolute; left: 70%; top: 40%; transform: translate(-50%, -50%);
+    width: 64px; height: 64px; display: none; image-rendering: pixelated; z-index: 55;
+}
+
+/* BATTLE */
+#battleBox {
+    position: absolute; width: 280px; height: 180px;
+    border: 4px solid white; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: black; display: none; overflow: hidden; z-index: 100;
+}
+#battleMsg {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%); color: red;
+    font-size: 24px; text-align: center; width: 100%;
+    z-index: 205; pointer-events: none;
+}
+#soul { position: absolute; width: 16px; height: 16px; background: red; z-index: 102; }
+.bullet { 
+    position: absolute; width: 20px; height: 20px; 
+    background: transparent; background-image: url('bullet.png'); 
+    background-size: contain; background-repeat: no-repeat; z-index: 101; 
+}
+
+/* HUD */
+#dialog-box {
+    width: 100%; flex-grow: 1;
+    border: 2px solid white;
+    padding: 10px;
+    font-size: 18px; line-height: 1.4;
+    margin-bottom: 5px;
+    color: white; 
+    background: black;
+}
+.choice-btn {
+    display: inline-block; margin-right: 15px; color: #fff; 
+    border: 2px solid white; padding: 5px 10px; cursor: pointer;
+    text-decoration: none; 
+}
+.choice-btn:hover { background: white; color: black; }
+
+.controls-area {
+    width: 100%; display: flex; justify-content: center; gap: 8px; margin-bottom: 5px;
+}
+.btn-action { border-color: white; color: white; }
+
+#select { background: black; z-index: 200; text-align: center; padding-top: 50px; }
+#select img { border: 2px solid white; margin: 10px; padding: 5px; width: 80px; height: 80px; cursor: pointer; }
+
+#gameover { 
+    position: absolute; inset: 0; background: rgba(0,0,0,0.9); 
+    display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 300; 
+}
+</style>
+</head>
+<body>
+
+<div class="game-container">
+    
+    <div class="viewport">
+        <img id="player" src="" />
+
+        <div id="select" class="screen active">
+            <div class="snow-overlay"></div>
+            <h1>OUR<br>SNOWY TALE</h1>
+            <p id="visit-msg" style="color:#888; font-size:12px;"></p>
+            <br>
+            <p>* Choose your SOUL *</p>
+            <div>
+                <img src="girl.png" onclick="startGame('girl')">
+                <img src="boy.png" onclick="startGame('boy')">
+            </div>
+        </div>
+
+        <div id="room1" class="screen">
+            <div class="snow-overlay"></div>
+            <div class="tree-container" style="left: 30px;"><div class="t-layer t1"></div><div class="t-layer t2"></div><div class="t-layer t3"></div><div class="trunk"></div></div>
+            <div class="tree-container" style="left: 150px; bottom: 35%; transform:scale(0.8);"><div class="t-layer t1"></div><div class="t-layer t2"></div><div class="t-layer t3"></div><div class="trunk"></div></div>
+            <div class="tree-container" style="right: 50px;"><div class="t-layer t1"></div><div class="t-layer t2"></div><div class="t-layer t3"></div><div class="trunk"></div></div>
+            <div class="snow-ground"></div>
+        </div>
+
+        <div id="room2" class="screen">
+            <div class="snow-overlay"></div>
+            <div class="star" style="top:20px; left:50px;"></div>
+            <div class="star" style="top:80px; left:150px;"></div>
+            <div class="star" style="top:40px; left:250px;"></div>
+            <div class="bridge"></div>
+            <div id="echoFlower"></div>
+        </div>
+
+        <div id="room3" class="screen">
+            <div class="snow-overlay"></div>
+            <img src="frozenheart.png" id="frozenHeartBtn">
+            <img src="heart.png" id="realHeart">
+            <img id="partner" src="">
+            <div id="battleBox">
+                <div id="battleMsg"></div>
+                <div id="soul"></div>
+            </div>
+        </div>
+
+        <div id="final" class="screen">
+            <div class="snow-overlay" style="z-index: 1;"></div> <img src="kiss_scene.png" />
+            <p id="end-text" style="margin-top:20px; font-size: 20px; color:white;"></p>
+        </div>
+        
+        <div id="gameover">
+            <h1 style="color:white">GAME OVER</h1>
+            <button onclick="retryBattle()" style="width:auto; padding:10px;">RETRY</button>
+        </div>
+    </div>
+
+    <div class="hud">
+        <div id="dialog-box"></div>
+        <div class="controls-area">
+            <button onmousedown="keys.w=true" onmouseup="keys.w=false" ontouchstart="keys.w=true" ontouchend="keys.w=false">↑</button>
+            <button onmousedown="keys.a=true" onmouseup="keys.a=false" ontouchstart="keys.a=true" ontouchend="keys.a=false">←</button>
+            <button onmousedown="keys.s=true" onmouseup="keys.s=false" ontouchstart="keys.s=true" ontouchend="keys.s=false">↓</button>
+            <button onmousedown="keys.d=true" onmouseup="keys.d=false" ontouchstart="keys.d=true" ontouchend="keys.d=false">→</button>
+            <div style="width:10px;"></div>
+            <button onclick="interact()" class="btn-action">E</button>
+        </div>
+    </div>
+
+</div>
+
+<audio id="bgm" src="bgm_xmas.mp3" loop></audio>
+<audio id="beep" src="beep.wav"></audio>
+<audio id="win" src="win.wav"></audio>
+<audio id="gameoverSnd" src="beep.mp3"></audio> 
+
+<script>
+const dialogEl = document.getElementById('dialog-box');
+const player = document.getElementById('player');
+const partner = document.getElementById('partner');
+const battleBox = document.getElementById('battleBox');
+const soul = document.getElementById('soul');
+const battleMsg = document.getElementById('battleMsg');
+
+// Referinta la noul sunet
+const gameoverSnd = document.getElementById('gameoverSnd');
+
+let visits = localStorage.getItem('visits') || 0;
+document.getElementById('visit-msg').innerText = visits > 0 ? `* Visit: ${visits}` : "";
+localStorage.setItem('visits', ++visits);
+
+let screen = 'select';
+let playerPos = { x: 10, y: 55 }; 
+let soulPos = { x: 130, y: 80 }; 
+let keys = { w:false, a:false, s:false, d:false };
+
+let isTyping = false;
+let typeInterval;
+let inBattle = false;
+let bulletInterval;
+let path = 'neutral'; 
+
+const name = "Mihai";
+
+const bgm = document.getElementById('bgm');
+const beep = document.getElementById('beep');
+const win = document.getElementById('win');
+bgm.volume = 0.3;
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    screen = id;
+    
+    if(id.startsWith('room')) {
+        playerPos.x = 5;
+        if (id === 'room1') playerPos.y = 55;
+        if (id === 'room2') playerPos.y = 50; 
+        if (id === 'room3') playerPos.y = 50; 
+        updatePlayer();
+    }
+}
+
+function startGame(char) {
+    player.src = char + ".png";
+    partner.src = (char === 'girl' ? 'boy' : 'girl') + ".png";
+    player.style.display = 'block';
+    bgm.play();
+    
+    showScreen('room1');
+    
+    if (visits > 1) {
+        writeText("* You returned to the cold.\n* Someone remembers you...", true);
+    } else {
+        writeText("* Snow falls quietly.\n* You see a figure ahead.", true);
+    }
+}
+
+function writeText(text, showChoices = false) {
+    isTyping = true;
+    dialogEl.innerHTML = '';
+    let i = 0;
+    clearInterval(typeInterval);
+    
+    typeInterval = setInterval(() => {
+        dialogEl.innerHTML += text[i];
+        if(i % 3 === 0) { beep.currentTime = 0; beep.play(); }
+        i++;
+        if(i >= text.length) {
+            clearInterval(typeInterval);
+            isTyping = false;
+            
+            if(showChoices && screen === 'room1') {
+                dialogEl.innerHTML += "<br><br><span class='choice-btn' onclick='makeChoice(\"hi\")'>[ Say Hello ]</span> <span class='choice-btn' onclick='makeChoice(\"quiet\")'>[ Stay Quiet ]</span>";
+            }
+        }
+    }, 40);
+}
+
+function makeChoice(c) {
+    if(c === 'hi') {
+        path = 'pacifist';
+        writeText("* You called out.\n* The world feels warmer.");
+    } else {
+        path = 'neutral';
+        writeText("* You stayed silent.\n* Determination fills you.");
+    }
+}
+
+document.addEventListener('keydown', e => {
+    let k = e.key.toLowerCase();
+    if(k==='w'||k==='arrowup') keys.w=true;
+    if(k==='a'||k==='arrowleft') keys.a=true;
+    if(k==='s'||k==='arrowdown') keys.s=true;
+    if(k==='d'||k==='arrowright') keys.d=true;
+    if(k==='e'||k===' ') interact();
+});
+document.addEventListener('keyup', e => {
+    let k = e.key.toLowerCase();
+    if(k==='w'||k==='arrowup') keys.w=false;
+    if(k==='a'||k==='arrowleft') keys.a=false;
+    if(k==='s'||k==='arrowdown') keys.s=false;
+    if(k==='d'||k==='arrowright') keys.d=false;
+});
+
+setInterval(() => {
+    if(isTyping) return;
+
+    if(inBattle) {
+        const s = 3;
+        if(keys.w) soulPos.y -= s;
+        if(keys.s) soulPos.y += s;
+        if(keys.a) soulPos.x -= s;
+        if(keys.d) soulPos.x += s;
+        soulPos.x = Math.max(0, Math.min(260, soulPos.x));
+        soulPos.y = Math.max(0, Math.min(160, soulPos.y));
+        soul.style.left = soulPos.x + 'px';
+        soul.style.top = soulPos.y + 'px';
+    } else if(screen.startsWith('room')) {
+        if(keys.w) playerPos.y -= 1.5;
+        if(keys.s) playerPos.y += 1.5;
+        if(keys.a) playerPos.x -= 1.5;
+        if(keys.d) playerPos.x += 1.5;
+        
+        let minY = 40; let maxY = 80;
+        if (screen === 'room3') { minY = 30; maxY = 70; }
+
+        playerPos.x = Math.max(0, Math.min(92, playerPos.x));
+        playerPos.y = Math.max(minY, Math.min(maxY, playerPos.y));
+        
+        updatePlayer();
+        checkExits();
+    }
+}, 16);
+
+function updatePlayer() {
+    player.style.left = playerPos.x + '%';
+    player.style.top = playerPos.y + '%';
+}
+
+function checkExits() {
+    if (playerPos.x > 90) {
+        if(screen === 'room1') {
+            showScreen('room2');
+            writeText("* Echo Bridge.\n* It's strangely quiet.");
+        } else if(screen === 'room2') {
+            showScreen('room3');
+            writeText("* The Core.\n* A Frozen Heart beats ahead.");
+        }
+    }
+}
+
+function interact() {
+    if(isTyping) { clearInterval(typeInterval); isTyping = false; return; }
+    
+    if(screen === 'room2') {
+        let dist = Math.hypot(playerPos.x - 70, playerPos.y - 45);
+        if(dist < 15) {
+            writeText("* (Echo Flower)\n* \"I'll always wait for you.\"");
+        }
+    }
+    if(screen === 'room3') {
+        let dist = Math.hypot(playerPos.x - 50, playerPos.y - 40);
+        if(dist < 20) {
+            startBattle();
+        }
+    }
+}
+
+function startBattle() {
+    inBattle = true;
+    writeText("* The cold air attacks!", null);
+    battleBox.style.display = 'block';
+    player.style.display = 'none';
+    
+    soulPos = {x:130, y:80};
+    
+    let cnt = 3;
+    battleMsg.innerText = "READY?";
+    let cd = setInterval(()=>{
+        cnt--;
+        if(cnt>0) battleMsg.innerText = cnt + "...";
+        else {
+            clearInterval(cd);
+            battleMsg.innerText = "DODGE!";
+            setTimeout(()=> battleMsg.innerText="", 500);
+            battleLoop();
+        }
+    }, 800);
+}
+
+function battleLoop() {
+    let time = 100; 
+    let speed = 2;
+    
+    bulletInterval = setInterval(()=>{
+        if(!inBattle) return;
+        time--;
+        dialogEl.innerText = "* Surviving: " + (time/10).toFixed(1) + "s";
+        
+        if(time <= 0) { winGame(); return; }
+        
+        if(time % 15 === 0) {
+            spawnPattern(speed);
+        }
+    }, 100);
+}
+
+function spawnPattern(speed) {
+    const gap = Math.random() * 200;
+    for(let i=0; i<300; i+=60) {
+        if(i < gap || i > gap + 80) {
+            createBullet(i, -20, 0, speed);
+        }
+    }
+}
+
+function createBullet(x, y, vx, vy) {
+    const b = document.createElement('div');
+    b.className = 'bullet';
+    battleBox.appendChild(b);
+    b.style.left = x+'px'; b.style.top = y+'px';
+    
+    let tm = setInterval(()=>{
+        if(!inBattle) { b.remove(); clearInterval(tm); return; }
+        x+=vx; y+=vy;
+        b.style.left = x+'px'; b.style.top = y+'px';
+        
+        if(x < soulPos.x+14 && x+20 > soulPos.x+4 && y < soulPos.y+14 && y+20 > soulPos.y+4) {
+            doGameOver();
+        }
+        if(y > 200) { b.remove(); clearInterval(tm); }
+    }, 20);
+}
+
+function doGameOver() {
+    inBattle = false;
+    clearInterval(bulletInterval);
+    // MODIFICARE: Sunet Game Over
+    gameoverSnd.currentTime = 0;
+    gameoverSnd.play();
+    document.getElementById('gameover').style.display = 'flex';
+}
+function retryBattle() {
+    document.getElementById('gameover').style.display = 'none';
+    startBattle();
+}
+
+function winGame() {
+    inBattle = false;
+    clearInterval(bulletInterval);
+    battleBox.style.display = 'none';
+    win.play();
+    
+    document.getElementById('frozenHeartBtn').style.display = 'none';
+    document.getElementById('realHeart').style.display = 'block';
+    player.style.display = 'block';
+    partner.style.display = 'block';
+    
+    writeText("* The ice melts... I love you, iub!", null);
+    
+    setTimeout(() => {
+         showEnding();
+    }, 2500);
+}
+
+function showEnding() {
+    player.style.display = 'none';
+    showScreen('final');
+    document.querySelector('.hud').style.display = 'none';
+    document.querySelector('.viewport').style.flex = '100';
+    
+    const txt = document.getElementById('end-text');
+    if(path === 'pacifist') txt.innerHTML = `Merry Christmas, ${name}!<br>You keep me warm. ❤`;
+    else txt.innerHTML = `Merry Christmas, ${name}!<br>Even in silence, I love you.`;
+}
+
+</script>
+</body>
+</html>
